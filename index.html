@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sistem Pengelolaan Kas Kelas IX C - Catat, kelola, dan rekap uang kas kelas secara digital.">
+  <title>Kas IX C</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>K</text></svg>">
+</head>
+<body>
+
+  <!-- ════════════════════════════════════════
+       MAIN APP
+       ════════════════════════════════════════ -->
+  <div id="app" class="active">
+    <!-- Mobile Sidebar Toggle -->
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- ── Sidebar ─────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="sidebar-brand-icon">K</div>
+          <div>
+            <h2>Kas IX C</h2>
+            <span>Pengelolaan Kas Kelas</span>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Menu</div>
+        <div class="nav-item active" data-view="dashboard" onclick="navigateTo('dashboard')">
+          <span class="nav-item-icon">◈</span>
+          Dashboard
+        </div>
+        <div class="nav-item" data-view="transaksi" onclick="navigateTo('transaksi')">
+          <span class="nav-item-icon">⇄</span>
+          Transaksi
+        </div>
+        <div class="nav-item" data-view="anggota" onclick="navigateTo('anggota')">
+          <span class="nav-item-icon">⊡</span>
+          Anggota
+          <span class="nav-badge" id="memberCount">0</span>
+        </div>
+        <div class="nav-item" data-view="rekap" onclick="navigateTo('rekap')">
+          <span class="nav-item-icon">≡</span>
+          Rekap
+        </div>
+
+        <div class="nav-section-title" style="margin-top:12px;">Lainnya</div>
+        <div class="nav-item" data-view="pengeluaran" onclick="navigateTo('pengeluaran')">
+          <span class="nav-item-icon">↗</span>
+          Pengeluaran
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-user-avatar">IX</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name">Kelas IX C</div>
+            <div class="sidebar-user-role">Pengurus Kelas</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Main Content ────────────────────── -->
+    <div class="main-content">
+
+      <!-- Header -->
+      <header class="main-header">
+        <div>
+          <h1 id="viewTitle">Dashboard</h1>
+          <p id="viewSubtitle">Ringkasan kas kelas</p>
+        </div>
+        <div class="header-actions">
+          <div class="connection-status" id="connectionStatus">
+            <span class="connection-dot"></span>
+            <span id="connectionText">Checking...</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Body -->
+      <div class="main-body">
+
+        <!-- Config Alert -->
+        <div class="config-alert hidden" id="configAlert">
+          <span class="config-alert-icon">!</span>
+          <div>
+            <strong>Google Sheets belum terhubung!</strong><br>
+            Silakan isi <code>GOOGLE_SCRIPT_URL</code> di file <code>config.js</code>. 
+            Baca panduan di <code>SETUP.md</code>.
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════
+             VIEW: DASHBOARD
+             ══════════════════════════════════ -->
+        <section class="view-section active" id="view-dashboard">
+          
+          <!-- Stats -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">Rp</div>
+              <div class="stat-value" id="statTotalKas">Rp0</div>
+              <div class="stat-label">Total Kas</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">✓</div>
+              <div class="stat-value" id="statSudahBayar">0</div>
+              <div class="stat-label">Sudah Bayar Bulan Ini</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">—</div>
+              <div class="stat-value" id="statBelumBayar">0</div>
+              <div class="stat-label">Belum Bayar Bulan Ini</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">#</div>
+              <div class="stat-value" id="statTotalAnggota">0</div>
+              <div class="stat-label">Total Anggota</div>
+            </div>
+          </div>
+
+          <!-- Quick Add & Recent -->
+          <div class="two-col">
+            <!-- Quick Add Form -->
+            <div class="section-card">
+              <div class="section-card-header">
+                <h3>Catat Pembayaran Kas</h3>
+              </div>
+              <div class="section-card-body">
+                <form class="quick-form" id="quickAddForm">
+                  <div class="form-group">
+                    <label for="qfMember">Nama Anggota</label>
+                    <select id="qfMember" class="form-input" required>
+                      <option value="">— Pilih Anggota —</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="qfNominal">Nominal (Rp)</label>
+                      <input type="number" id="qfNominal" class="form-input" placeholder="3000" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="qfDate">Tanggal</label>
+                      <input type="date" id="qfDate" class="form-input" required>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label for="qfNote">Keterangan (opsional)</label>
+                    <input type="text" id="qfNote" class="form-input" placeholder="Pembayaran Kas Minggu 1">
+                  </div>
+                  <button type="submit" class="btn btn-primary">
+                    Simpan Pembayaran
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="section-card">
+              <div class="section-card-header">
+                <h3>Transaksi Terbaru</h3>
+                <button class="btn btn-ghost btn-sm" onclick="navigateTo('transaksi')">Lihat Semua →</button>
+              </div>
+              <div class="section-card-body no-pad">
+                <div class="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Tanggal</th>
+                        <th>Nama</th>
+                        <th>Nominal</th>
+                      </tr>
+                    </thead>
+                    <tbody id="recentTransactions">
+                      <tr>
+                        <td colspan="3" class="table-empty">
+                          <div class="table-empty-icon">—</div>
+                          <p>Belum ada transaksi</p>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══════════════════════════════════
+             VIEW: TRANSAKSI
+             ══════════════════════════════════ -->
+        <section class="view-section" id="view-transaksi">
+          <div class="filter-bar">
+            <div class="search-input-wrapper">
+              <span class="search-icon">⌕</span>
+              <input type="text" class="search-input" id="searchTransaksi" placeholder="Cari transaksi...">
+            </div>
+            <select class="filter-select" id="filterTipe">
+              <option value="">Semua Tipe</option>
+              <option value="Pemasukan">Pemasukan</option>
+              <option value="Pengeluaran">Pengeluaran</option>
+            </select>
+          </div>
+
+          <div class="section-card">
+            <div class="section-card-header">
+              <h3>Semua Transaksi</h3>
+              <span class="badge badge-neutral" id="totalTransaksiCount">0 transaksi</span>
+            </div>
+            <div class="section-card-body no-pad">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Tanggal</th>
+                      <th>Nama</th>
+                      <th>Tipe</th>
+                      <th>Nominal</th>
+                      <th>Keterangan</th>
+                      <th>Dicatat Oleh</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="allTransactions">
+                    <tr>
+                      <td colspan="7" class="table-empty">
+                        <div class="table-empty-icon">—</div>
+                        <p>Belum ada transaksi</p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══════════════════════════════════
+             VIEW: ANGGOTA
+             ══════════════════════════════════ -->
+        <section class="view-section" id="view-anggota">
+          <div class="add-member-bar">
+            <input type="text" class="form-input" id="newMemberName" placeholder="Ketik nama anggota baru...">
+            <button class="btn btn-primary" onclick="addMember()" id="addMemberBtn">
+              + Tambah
+            </button>
+          </div>
+
+          <div class="filter-bar">
+            <div class="search-input-wrapper">
+              <span class="search-icon">⌕</span>
+              <input type="text" class="search-input" id="searchAnggota" placeholder="Cari anggota...">
+            </div>
+          </div>
+
+          <div class="members-grid" id="membersGrid">
+            <div class="empty-state">
+              <div class="empty-state-icon">—</div>
+              <h3>Belum ada anggota</h3>
+              <p>Tambahkan anggota kelas menggunakan form di atas</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══════════════════════════════════
+             VIEW: REKAP
+             ══════════════════════════════════ -->
+        <section class="view-section" id="view-rekap">
+          <div class="filter-bar">
+            <div class="search-input-wrapper">
+              <span class="search-icon">⌕</span>
+              <input type="text" class="search-input" id="searchRekap" placeholder="Cari nama anggota...">
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-card-header">
+              <h3>Rekap Pembayaran Anggota</h3>
+              <button class="btn btn-secondary btn-sm" onclick="refreshData()">Refresh</button>
+            </div>
+            <div class="section-card-body no-pad">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Nama</th>
+                      <th>Total Dibayar</th>
+                      <th>Jumlah Bayar</th>
+                      <th>Terakhir Bayar</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rekapTable">
+                    <tr>
+                      <td colspan="4" class="table-empty">
+                        <div class="table-empty-icon">—</div>
+                        <p>Belum ada data rekap</p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══════════════════════════════════
+             VIEW: PENGELUARAN
+             ══════════════════════════════════ -->
+        <section class="view-section" id="view-pengeluaran">
+          <div class="section-card">
+            <div class="section-card-header">
+              <h3>Catat Pengeluaran</h3>
+            </div>
+            <div class="section-card-body">
+              <form class="quick-form" id="pengeluaranForm">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="pgNominal">Nominal Pengeluaran (Rp)</label>
+                    <input type="number" id="pgNominal" class="form-input" placeholder="50000" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="pgDate">Tanggal</label>
+                    <input type="date" id="pgDate" class="form-input" required>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="pgNote">Keterangan Pengeluaran</label>
+                  <textarea id="pgNote" class="form-input" placeholder="Contoh: Beli kertas untuk mading kelas..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  Simpan Pengeluaran
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Pengeluaran History -->
+          <div class="section-card" style="margin-top:24px;">
+            <div class="section-card-header">
+              <h3>Riwayat Pengeluaran</h3>
+            </div>
+            <div class="section-card-body no-pad">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Tanggal</th>
+                      <th>Nominal</th>
+                      <th>Keterangan</th>
+                      <th>Dicatat Oleh</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="pengeluaranTable">
+                    <tr>
+                      <td colspan="5" class="table-empty">
+                        <div class="table-empty-icon">—</div>
+                        <p>Belum ada pengeluaran</p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       MODAL (Confirm Delete)
+       ════════════════════════════════════════ -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="confirmTitle">Konfirmasi</h3>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmMessage">Apakah Anda yakin?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal()">Batal</button>
+        <button class="btn btn-danger" id="confirmAction">Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       TOAST CONTAINER
+       ════════════════════════════════════════ -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ════════════════════════════════════════
+       LOADING OVERLAY
+       ════════════════════════════════════════ -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loadingText">Memuat data...</div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SCRIPTS
+       ════════════════════════════════════════ -->
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
