@@ -471,7 +471,7 @@ function renderRekap(searchQuery = '') {
         </div>
       </td>
       <td><span class="nominal positive">${formatCurrency(r.totalDibayar)}</span></td>
-      <td><span class="badge badge-neutral">${r.jumlahPembayaran}x</span></td>
+      <td><span class="badge badge-neutral">${Math.floor(r.totalDibayar / CONFIG.DEFAULT_NOMINAL)}x</span></td>
       <td style="color:var(--text-secondary)">${r.terakhirBayar === '-' ? '-' : formatDateDisplay(r.terakhirBayar)}</td>
     </tr>
   `).join('');
