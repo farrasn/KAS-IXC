@@ -17,6 +17,9 @@
    
    ============================================ */
 
+// ── Konfigurasi ─────────────────────────────────
+var DEFAULT_NOMINAL = 5000; // Nominal kas per minggu (Rp)
+
 // ── Inisialisasi Sheet ──────────────────────────
 function initSheets() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -455,7 +458,7 @@ function getRekap(ss) {
       var tipe = row[5] || 'Pemasukan';
       if (rekapData[nama] && tipe !== 'Pengeluaran') {
         rekapData[nama].totalDibayar += Number(row[3]) || 0;
-        rekapData[nama].jumlahPembayaran += 1;
+        // jumlah minggu dihitung dari total dibayar
         var tanggal = row[1] ? Utilities.formatDate(new Date(row[1]), 'Asia/Jakarta', 'yyyy-MM-dd') : '-';
         if (tanggal !== '-') {
           if (rekapData[nama].terakhirBayar === '-' || tanggal > rekapData[nama].terakhirBayar) {
@@ -466,7 +469,11 @@ function getRekap(ss) {
     });
   }
   
-  var result = Object.values(rekapData);
+  // Hitung jumlah minggu dari total dibayar
+  var result = Object.values(rekapData).map(function(item) {
+    item.jumlahPembayaran = Math.floor(item.totalDibayar / DEFAULT_NOMINAL);
+    return item;
+  });
   
   return { success: true, data: result };
 }
