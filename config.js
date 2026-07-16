@@ -18,7 +18,7 @@ const CONFIG = {
   // ── Google Apps Script URL ──────────────────
   // Paste URL Google Apps Script Web App di sini
   // Lihat SETUP.md untuk panduan lengkap
-  GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbykbRxDlMr9X80dTqOitk4wmE1uoL519vOjrAaqQxYT1YlcwYyF3FprJSBtAOkcy6YELg/exec',
+  GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwyWSLmY64UyZi04jCbTmycbiyOIrytF8pwl2-BboCZgVK3YsrxXZdCAXmNN-VDERBkbQ/exec',
 
   // ── Akun Pengurus Kelas ─────────────────────
   // Ubah password sesuai keinginan
