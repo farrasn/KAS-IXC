@@ -13,7 +13,7 @@ const CONFIG = {
 
   // ── Nominal Kas Default (Rp) ────────────────
   // Ubah angka ini jika nominal kas berubah
-  DEFAULT_NOMINAL: 3000,
+  DEFAULT_NOMINAL: 5000,
 
   // ── Google Apps Script URL ──────────────────
   // Paste URL Google Apps Script Web App di sini
