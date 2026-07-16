@@ -513,3 +513,10 @@ function testInit() {
   var result = initSheets();
   Logger.log(result);
 }
+
+// ── Refresh Rekap (Run manual dari Apps Script Editor) ─
+function refreshRekap() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  updateRekap(ss);
+  Logger.log('Rekap berhasil di-refresh!');
+}
