@@ -393,8 +393,8 @@ function getSummary(ss) {
         totalPemasukan += nominal;
       }
       
-      // Check if paid this month
-      if (row[1] && tipe !== 'Pengeluaran') {
+      // Check if paid this month (only regular kas, not Pemasukan Lain)
+      if (row[1] && tipe === 'Pemasukan') {
         var date = new Date(row[1]);
         if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
           paidThisMonth[row[2]] = true;
