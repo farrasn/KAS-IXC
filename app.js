@@ -31,6 +31,10 @@ function initApp() {
   const qfNominal = document.getElementById('qfNominal');
   if (qfNominal) qfNominal.value = CONFIG.DEFAULT_NOMINAL;
 
+  // Set default date for pemasukan lain
+  const plDate = document.getElementById('plDate');
+  if (plDate) plDate.value = today;
+
   // Setup event listeners
   setupEventListeners();
 
@@ -51,6 +55,17 @@ function setupEventListeners() {
   document.getElementById('pengeluaranForm').addEventListener('submit', (e) => {
     e.preventDefault();
     handlePengeluaran();
+  });
+
+  // Pemasukan Lain form
+  document.getElementById('pemasukanLainForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    handlePemasukanLain();
+  });
+
+  // Week hint on nominal input
+  document.getElementById('qfNominal').addEventListener('input', (e) => {
+    updateWeekHint(e.target.value);
   });
 
   // Search inputs
@@ -81,6 +96,9 @@ function setupEventListeners() {
   // Mobile sidebar
   document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
   document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
+
+  // Show initial week hint
+  updateWeekHint(CONFIG.DEFAULT_NOMINAL);
 }
 
 // ============================================
@@ -125,7 +143,8 @@ function navigateTo(view) {
     transaksi: { title: 'Transaksi', subtitle: 'Riwayat semua transaksi' },
     anggota: { title: 'Anggota', subtitle: 'Kelola anggota kelas' },
     rekap: { title: 'Rekap', subtitle: 'Rekap pembayaran per anggota' },
-    pengeluaran: { title: 'Pengeluaran', subtitle: 'Catat pengeluaran kas' }
+    pengeluaran: { title: 'Pengeluaran', subtitle: 'Catat pengeluaran kas' },
+    'pemasukan-lain': { title: 'Pemasukan Lain', subtitle: 'Catat pemasukan selain kas' }
   };
 
   const t = titles[view] || { title: 'KasKu', subtitle: '' };
@@ -204,14 +223,13 @@ async function checkConnection() {
 function updateConnectionStatus(isConnected) {
   state.isConnected = isConnected;
   const statusEl = document.getElementById('connectionStatus');
-  const textEl = document.getElementById('connectionText');
   
   if (isConnected) {
     statusEl.className = 'connection-status online';
-    textEl.textContent = 'Terhubung';
+    statusEl.title = 'Terhubung ke Google Sheets';
   } else {
     statusEl.className = 'connection-status offline';
-    textEl.textContent = 'Offline';
+    statusEl.title = 'Tidak terhubung';
   }
 }
 
@@ -241,6 +259,7 @@ async function refreshData() {
       renderRecentTransactions();
       renderAllTransactions();
       renderPengeluaran();
+      renderPemasukanLain();
     }
 
     if (membersRes.success) {
@@ -396,6 +415,9 @@ function renderMembers(searchQuery = '') {
     filtered = filtered.filter(m => m.nama.toLowerCase().includes(q));
   }
 
+  // Sort alphabetically
+  filtered.sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
+
   if (filtered.length === 0) {
     grid.innerHTML = `
       <div class="empty-state" style="grid-column: 1/-1;">
@@ -462,7 +484,9 @@ function populateMemberSelect() {
   // Keep the placeholder option
   select.innerHTML = '<option value="">— Pilih Anggota —</option>';
 
-  state.members.forEach(m => {
+  // Sort alphabetically
+  const sorted = [...state.members].sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
+  sorted.forEach(m => {
     const option = document.createElement('option');
     option.value = m.nama;
     option.textContent = m.nama;
@@ -481,7 +505,7 @@ async function handleQuickAdd() {
   const member = document.getElementById('qfMember').value;
   const nominal = document.getElementById('qfNominal').value;
   const date = document.getElementById('qfDate').value;
-  const note = document.getElementById('qfNote').value;
+  let note = document.getElementById('qfNote').value;
 
   if (!member) {
     showToast('Pilih anggota terlebih dahulu!', 'error');
@@ -496,14 +520,23 @@ async function handleQuickAdd() {
     return;
   }
 
+  // Auto-detect multi-week payment
+  const numNominal = Number(nominal);
+  const weekCount = Math.floor(numNominal / CONFIG.DEFAULT_NOMINAL);
+  if (!note && weekCount > 1 && numNominal % CONFIG.DEFAULT_NOMINAL === 0) {
+    note = `Pembayaran Kas ${weekCount} Minggu`;
+  } else if (!note) {
+    note = 'Pembayaran Kas';
+  }
+
   showLoading('Menyimpan pembayaran...');
 
   const result = await apiPost({
     action: 'addTransaction',
     nama: member,
-    nominal: Number(nominal),
+    nominal: numNominal,
     tanggal: date,
-    keterangan: note || 'Pembayaran Kas',
+    keterangan: note,
     tipe: 'Pemasukan',
     dicatatOleh: 'Pengurus'
   });
@@ -511,15 +544,42 @@ async function handleQuickAdd() {
   hideLoading();
 
   if (result.success) {
-    showToast(`Pembayaran ${member} berhasil disimpan!`, 'success');
+    const weekMsg = weekCount > 1 && numNominal % CONFIG.DEFAULT_NOMINAL === 0
+      ? ` (${weekCount} minggu)` : '';
+    showToast(`Pembayaran ${member}${weekMsg} berhasil disimpan!`, 'success');
     // Reset form
     document.getElementById('qfMember').value = '';
     document.getElementById('qfNote').value = '';
     document.getElementById('qfNominal').value = CONFIG.DEFAULT_NOMINAL;
+    updateWeekHint(CONFIG.DEFAULT_NOMINAL);
     // Refresh data
     refreshData();
   } else {
     showToast('Gagal menyimpan: ' + (result.error || 'Unknown error'), 'error');
+  }
+}
+
+// ── Week Hint ─────────────────────────────────
+function updateWeekHint(nominal) {
+  const hintEl = document.getElementById('weekHint');
+  if (!hintEl) return;
+  const num = Number(nominal) || 0;
+  if (num <= 0 || CONFIG.DEFAULT_NOMINAL <= 0) {
+    hintEl.textContent = '';
+    hintEl.classList.remove('visible');
+    return;
+  }
+  const weeks = num / CONFIG.DEFAULT_NOMINAL;
+  if (weeks >= 1 && Number.isInteger(weeks)) {
+    if (weeks === 1) {
+      hintEl.innerHTML = `<span class="week-hint-icon">◷</span> 1 minggu kas`;
+    } else {
+      hintEl.innerHTML = `<span class="week-hint-icon">◷</span> ${weeks} minggu kas`;
+    }
+    hintEl.classList.add('visible');
+  } else {
+    hintEl.innerHTML = `<span class="week-hint-icon">•</span> Bukan kelipatan kas (Rp${CONFIG.DEFAULT_NOMINAL.toLocaleString('id-ID')}/minggu)`;
+    hintEl.classList.add('visible');
   }
 }
 
@@ -563,6 +623,81 @@ async function handlePengeluaran() {
   } else {
     showToast('Gagal menyimpan: ' + (result.error || 'Unknown error'), 'error');
   }
+}
+
+// ── Pemasukan Lain ────────────────────────────
+async function handlePemasukanLain() {
+  const sumber = document.getElementById('plSumber').value.trim();
+  const nominal = document.getElementById('plNominal').value;
+  const date = document.getElementById('plDate').value;
+  const note = document.getElementById('plNote').value;
+
+  if (!sumber) {
+    showToast('Isi sumber pemasukan!', 'error');
+    return;
+  }
+  if (!nominal || Number(nominal) <= 0) {
+    showToast('Nominal harus lebih dari 0!', 'error');
+    return;
+  }
+  if (!date) {
+    showToast('Pilih tanggal!', 'error');
+    return;
+  }
+
+  showLoading('Menyimpan pemasukan lain...');
+
+  const result = await apiPost({
+    action: 'addTransaction',
+    nama: sumber,
+    nominal: Number(nominal),
+    tanggal: date,
+    keterangan: note || 'Pemasukan Lain',
+    tipe: 'Pemasukan Lain',
+    dicatatOleh: 'Pengurus'
+  });
+
+  hideLoading();
+
+  if (result.success) {
+    showToast(`Pemasukan lain "${sumber}" berhasil dicatat!`, 'success');
+    document.getElementById('plSumber').value = '';
+    document.getElementById('plNominal').value = '';
+    document.getElementById('plNote').value = '';
+    refreshData();
+  } else {
+    showToast('Gagal menyimpan: ' + (result.error || 'Unknown error'), 'error');
+  }
+}
+
+function renderPemasukanLain() {
+  const tbody = document.getElementById('pemasukanLainTable');
+  if (!tbody) return;
+  const pemasukanLain = state.transactions.filter(t => t.tipe === 'Pemasukan Lain');
+
+  if (pemasukanLain.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="table-empty">
+          <div class="table-empty-icon">—</div>
+          <p>Belum ada pemasukan lain</p>
+        </td>
+      </tr>`;
+    return;
+  }
+
+  tbody.innerHTML = pemasukanLain.map(t => `
+    <tr>
+      <td>${formatDateDisplay(t.tanggal)}</td>
+      <td>${escapeHtml(t.nama)}</td>
+      <td><span class="nominal positive">+${formatCurrency(t.nominal)}</span></td>
+      <td style="color:var(--text-secondary)">${escapeHtml(t.keterangan || '-')}</td>
+      <td style="color:var(--text-secondary)">${escapeHtml(t.dicatatOleh)}</td>
+      <td>
+        <button class="member-action-btn delete" onclick="confirmDeleteTransaction('${t.id}')" title="Hapus">×</button>
+      </td>
+    </tr>
+  `).join('');
 }
 
 async function addMember() {

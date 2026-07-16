@@ -849,11 +849,43 @@ body::before {
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
 }
 
+/* ── Week Hint ───────────────────────────────── */
+.week-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 6px;
+  padding: 0 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 18px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.week-hint.visible {
+  opacity: 1;
+  transform: translateY(0);
+  color: var(--success);
+}
+
+.week-hint-icon {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
 /* ============================================
    TABLE
    ============================================ */
 .table-container {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+.table-container table {
+  min-width: 560px;
 }
 
 table {
@@ -1289,11 +1321,16 @@ tbody tr:last-child td {
 .connection-status {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius-full);
-  font-size: 12px;
-  font-weight: 500;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: help;
+  transition: var(--transition-fast);
+}
+
+.connection-status:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .connection-dot {
@@ -1307,19 +1344,9 @@ tbody tr:last-child td {
   box-shadow: 0 0 6px var(--success);
 }
 
-.connection-status.online {
-  color: var(--success);
-  background: var(--success-bg);
-}
-
 .connection-status.offline .connection-dot {
   background: var(--error);
   box-shadow: 0 0 6px var(--error);
-}
-
-.connection-status.offline {
-  color: var(--error);
-  background: var(--error-bg);
 }
 
 .connection-status.offline .connection-dot {
@@ -1586,5 +1613,50 @@ tbody tr:last-child td {
   
   .header-actions {
     gap: 4px;
+  }
+
+  .main-body {
+    padding: 16px;
+  }
+
+  .section-card-header {
+    padding: 16px 18px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .section-card-body {
+    padding: 18px;
+  }
+
+  /* Table mobile scroll enhancements */
+  .table-container {
+    margin: 0 -2px;
+  }
+
+  .table-container table {
+    min-width: 480px;
+  }
+
+  thead th {
+    padding: 12px 14px;
+    font-size: 11px;
+  }
+
+  tbody td {
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  .stat-label {
+    font-size: 12px;
   }
 }
